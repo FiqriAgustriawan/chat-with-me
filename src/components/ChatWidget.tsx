@@ -463,40 +463,6 @@ export default function ChatWidget({ isDarkMode }: ChatWidgetProps) {
               </div>
 
               <div className="flex items-center gap-1">
-                {/* Language Selector */}
-                <div className="relative" style={{ zIndex: 999 }}>
-                  <button
-                    onClick={() => setShowLangMenu(!showLangMenu)}
-                    className={`px-2.5 py-1.5 rounded-xl transition-colors text-sm font-medium flex items-center gap-1.5 ${showLangMenu ? (isDarkMode ? 'bg-neutral-700' : 'bg-neutral-200') : (isDarkMode ? 'bg-neutral-800 hover:bg-neutral-700' : 'bg-neutral-100 hover:bg-neutral-200')}`}
-                    title="Change Language"
-                  >
-                    <span className="text-base">{selectedLang.flag}</span>
-                    <span className={isDarkMode ? 'text-neutral-300' : 'text-neutral-600'}>{selectedLang.code.split('-')[0].toUpperCase()}</span>
-                  </button>
-
-                  <AnimatePresence>
-                    {showLangMenu && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -8 }}
-                        className={`absolute top-full left-0 mt-2 p-2 rounded-xl min-w-[170px] ${isDarkMode ? 'bg-neutral-900 border border-neutral-600' : 'bg-white border border-neutral-300'}`}
-                        style={{ zIndex: 99999, boxShadow: '0 15px 50px rgba(0,0,0,0.5)' }}
-                      >
-                        {languages.map((lang) => (
-                          <button
-                            key={lang.code}
-                            onClick={() => { setSelectedLang(lang); setShowLangMenu(false) }}
-                            className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all ${selectedLang.code === lang.code ? (isDarkMode ? 'bg-neutral-700' : 'bg-neutral-100') : (isDarkMode ? 'hover:bg-neutral-700' : 'hover:bg-neutral-50')}`}
-                          >
-                            <span className="text-lg">{lang.flag}</span>
-                            <span style={{ color: isDarkMode ? '#ffffff' : '#000000' }}>{lang.name}</span>
-                          </button>
-                        ))}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
 
                 {/* Saved Messages */}
                 <button
@@ -747,6 +713,40 @@ export default function ChatWidget({ isDarkMode }: ChatWidgetProps) {
                 )}
 
                 <div className="flex gap-2 items-center">
+                  {/* Language Selector - in input area */}
+                  <div className="relative">
+                    <button
+                      onClick={() => setShowLangMenu(!showLangMenu)}
+                      className={`p-3 rounded-xl transition-colors ${showLangMenu ? (isDarkMode ? 'bg-neutral-700' : 'bg-neutral-200') : (isDarkMode ? 'bg-neutral-800 hover:bg-neutral-700' : 'bg-neutral-100 hover:bg-neutral-200')}`}
+                      title="Change Language"
+                    >
+                      <span className="text-lg">{selectedLang.flag}</span>
+                    </button>
+
+                    <AnimatePresence>
+                      {showLangMenu && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: 10 }}
+                          className={`absolute bottom-full left-0 mb-2 p-2 rounded-xl min-w-[160px] ${isDarkMode ? 'bg-neutral-800 border border-neutral-600' : 'bg-white border border-neutral-300'}`}
+                          style={{ boxShadow: '0 -10px 40px rgba(0,0,0,0.3)' }}
+                        >
+                          {languages.map((lang) => (
+                            <button
+                              key={lang.code}
+                              onClick={() => { setSelectedLang(lang); setShowLangMenu(false) }}
+                              className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all ${selectedLang.code === lang.code ? (isDarkMode ? 'bg-neutral-700' : 'bg-neutral-100') : (isDarkMode ? 'hover:bg-neutral-700' : 'hover:bg-neutral-50')}`}
+                            >
+                              <span className="text-lg">{lang.flag}</span>
+                              <span style={{ color: isDarkMode ? '#ffffff' : '#000000' }}>{lang.name}</span>
+                            </button>
+                          ))}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+
                   {speechSupported && (
                     <motion.button
                       whileTap={{ scale: 0.9 }}
