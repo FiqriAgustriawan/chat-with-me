@@ -600,9 +600,9 @@ export default function ChatWidget({ isDarkMode }: ChatWidgetProps) {
                             ) : msg.text}
                           </div>
 
-                          {/* Actions for bot messages */}
+                          {/* Actions for bot messages - always visible on mobile, hover effect on desktop */}
                           {msg.sender === 'bot' && (
-                            <div className="flex items-center gap-1 mt-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="flex items-center gap-1 mt-1.5 opacity-70 hover:opacity-100 transition-opacity">
                               {/* Like */}
                               <button
                                 onClick={() => toggleLike(msg.id)}

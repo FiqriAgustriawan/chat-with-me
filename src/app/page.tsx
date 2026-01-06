@@ -40,16 +40,16 @@ export default function Home() {
       <Portfolio isDarkMode={isDarkMode} isHogwartsMode={isHogwartsMode} />
       <ChatWidget isDarkMode={isDarkMode} />
 
-      {/* Top Right Controls */}
-      <div className="fixed top-5 right-5 flex items-center gap-2 z-50">
+      {/* Top Right Controls - z-40 so it doesn't block chat header */}
+      <div className="fixed top-5 right-5 flex items-center gap-2 z-40">
         {/* Mode Toggle - Shows destination icon */}
         <button
           onClick={() => setIsHogwartsMode(!isHogwartsMode)}
           className={`w-11 h-11 rounded-full flex items-center justify-center transition-all overflow-hidden ${isHogwartsMode
-              ? isDarkMode
-                ? 'bg-neutral-800 border border-neutral-700 hover:bg-neutral-700'
-                : 'bg-white border border-neutral-200 hover:bg-neutral-100 shadow-sm'
-              : 'bg-[#1a472a] border-2 border-[#2a623d] shadow-lg shadow-green-900/30'
+            ? isDarkMode
+              ? 'bg-neutral-800 border border-neutral-700 hover:bg-neutral-700'
+              : 'bg-white border border-neutral-200 hover:bg-neutral-100 shadow-sm'
+            : 'bg-[#1a472a] border-2 border-[#2a623d] shadow-lg shadow-green-900/30'
             }`}
           title={isHogwartsMode ? 'Switch to Professional Mode' : 'Switch to Hogwarts Mode'}
         >
@@ -80,8 +80,8 @@ export default function Home() {
         <button
           onClick={() => setIsDarkMode(!isDarkMode)}
           className={`w-11 h-11 rounded-full flex items-center justify-center transition-all ${isDarkMode
-              ? 'bg-neutral-800 text-white hover:bg-neutral-700 border border-neutral-700'
-              : 'bg-white text-neutral-900 hover:bg-neutral-100 border border-neutral-200 shadow-sm'
+            ? 'bg-neutral-800 text-white hover:bg-neutral-700 border border-neutral-700'
+            : 'bg-white text-neutral-900 hover:bg-neutral-100 border border-neutral-200 shadow-sm'
             }`}
           title={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
         >

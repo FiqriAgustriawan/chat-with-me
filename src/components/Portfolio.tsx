@@ -220,8 +220,8 @@ export default function Portfolio({ isDarkMode, isHogwartsMode }: PortfolioProps
                               className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all ${!hasGlasses ? 'bg-green-900/30' : 'hover:bg-white/5'}`}
                               style={{ color: colors.text }}
                             >
-                              <span className="w-6 h-6 rounded-full overflow-hidden border border-current">
-                                <Image src="/profile_slytherin.png" alt="" width={24} height={24} className="object-cover" />
+                              <span className="w-7 h-7 rounded-full overflow-hidden border border-current flex-shrink-0" style={{ aspectRatio: '1/1' }}>
+                                <Image src="/profile_slytherin.png" alt="" width={28} height={28} className="w-full h-full object-cover" />
                               </span>
                               Standard
                             </button>
@@ -230,8 +230,8 @@ export default function Portfolio({ isDarkMode, isHogwartsMode }: PortfolioProps
                               className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all ${hasGlasses ? 'bg-green-900/30' : 'hover:bg-white/5'}`}
                               style={{ color: colors.text }}
                             >
-                              <span className="w-6 h-6 rounded-full overflow-hidden border border-current">
-                                <Image src="/profile_slytherin_glasses.png" alt="" width={24} height={24} className="object-cover" />
+                              <span className="w-7 h-7 rounded-full overflow-hidden border border-current flex-shrink-0" style={{ aspectRatio: '1/1' }}>
+                                <Image src="/profile_slytherin_glasses.png" alt="" width={28} height={28} className="w-full h-full object-cover" />
                               </span>
                               With Glasses
                             </button>
