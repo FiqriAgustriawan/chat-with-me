@@ -49,6 +49,7 @@ interface Message {
   isVoiceInput?: boolean
   isLiked?: boolean
   isSaved?: boolean
+  image?: string  // For AI-generated images
 }
 
 interface ChatWidgetProps {
@@ -94,6 +95,12 @@ export default function ChatWidget({ isDarkMode }: ChatWidgetProps) {
   const [selectedLang, setSelectedLang] = useState(languages[0])
   const [savedMessages, setSavedMessages] = useState<Message[]>([])
   const [showSaved, setShowSaved] = useState(false)
+
+  // Image Features States
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null)
+  const [generatedImages, setGeneratedImages] = useState<{ url: string, prompt: string, timestamp: Date }[]>([])
+  const [showGallery, setShowGallery] = useState(false)
+  const [copiedUrl, setCopiedUrl] = useState(false)
 
   // Voice States
   const [isListening, setIsListening] = useState(false)
@@ -359,13 +366,15 @@ export default function ChatWidget({ isDarkMode }: ChatWidgetProps) {
         text: botResponse,
         sender: 'bot',
         timestamp: new Date(),
+        image: data.image || undefined,  // Include generated image if present
       }
 
       setMessages(prev => [...prev, botMessage])
       playNotification()
       if (!isOpen) setHasNewMessage(true)
 
-      if (fromVoice && ttsSupported) {
+      // Only speak text response if no image (image responses are short)
+      if (fromVoice && ttsSupported && !data.image) {
         setTimeout(() => speakText(botResponse, botMessage.id), 500)
       }
 
@@ -400,9 +409,212 @@ export default function ChatWidget({ isDarkMode }: ChatWidgetProps) {
     localStorage.removeItem(STORAGE_KEY)
   }
 
+  // ==================== Image Features ====================
+  const downloadImage = (imageUrl: string) => {
+    // Create download link
+    const link = document.createElement('a')
+    link.href = imageUrl
+    link.download = `fiqri-bot-image-${Date.now()}.png`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
+  const shareImage = async (imageUrl: string) => {
+    // Convert base64 to blob for sharing
+    try {
+      // For base64 images, convert to file and share
+      if (imageUrl.startsWith('data:')) {
+        const response = await fetch(imageUrl)
+        const blob = await response.blob()
+        const file = new File([blob], 'fiqri-bot-image.png', { type: 'image/png' })
+
+        // Try native share with file (mobile)
+        if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            title: 'Image from Fiqri Bot',
+            text: 'Check out this AI-generated image!',
+            files: [file],
+          })
+          return
+        }
+      }
+
+      // Fallback: download the image
+      downloadImage(imageUrl)
+    } catch (error) {
+      console.error('Share failed:', error)
+      // Final fallback: download
+      downloadImage(imageUrl)
+    }
+  }
+
+  const addToGallery = (url: string, prompt: string) => {
+    // Check if already in gallery
+    const exists = generatedImages.some(img => img.url === url)
+    if (!exists) {
+      setGeneratedImages(prev => [...prev, { url, prompt, timestamp: new Date() }])
+      // Show brief notification
+      setCopiedUrl(true)
+      setTimeout(() => setCopiedUrl(false), 1500)
+    }
+  }
+
   // ==================== Render ====================
   return (
     <>
+      {/* Image Lightbox Modal */}
+      <AnimatePresence>
+        {lightboxImage && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-xl flex items-center justify-center p-4"
+            onClick={() => setLightboxImage(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.8 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.8 }}
+              className="relative flex flex-col items-center justify-center"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={lightboxImage}
+                alt="Full size image"
+                className="max-w-[90vw] max-h-[80vh] object-contain rounded-2xl shadow-2xl"
+                style={{ minWidth: '200px', minHeight: '200px', backgroundColor: '#1a1a1a' }}
+              />
+
+              {/* Lightbox Action Buttons */}
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 bg-black/60 backdrop-blur-md px-4 py-2 rounded-full">
+                <button
+                  onClick={() => downloadImage(lightboxImage)}
+                  className="p-2 text-white hover:text-blue-400 transition-colors"
+                  title="Download"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                </button>
+                <button
+                  onClick={() => shareImage(lightboxImage)}
+                  className="p-2 text-white hover:text-green-400 transition-colors"
+                  title="Share"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                  </svg>
+                </button>
+                <button
+                  onClick={() => window.open(lightboxImage, '_blank')}
+                  className="p-2 text-white hover:text-purple-400 transition-colors"
+                  title="Open in new tab"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Close Button */}
+              <button
+                onClick={() => setLightboxImage(null)}
+                className="absolute top-4 right-4 p-2 bg-black/60 text-white rounded-full hover:bg-black/80 transition-colors"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Gallery Modal */}
+      <AnimatePresence>
+        {showGallery && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-xl flex items-center justify-center p-4"
+            onClick={() => setShowGallery(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              className={`relative w-full max-w-4xl max-h-[90vh] rounded-2xl overflow-hidden ${isDarkMode ? 'bg-neutral-900' : 'bg-white'}`}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Gallery Header */}
+              <div className={`p-4 border-b ${isDarkMode ? 'border-neutral-700' : 'border-neutral-200'}`}>
+                <div className="flex items-center justify-between">
+                  <h3 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-neutral-800'}`}>
+                    🖼️ Image Gallery ({generatedImages.length})
+                  </h3>
+                  <button
+                    onClick={() => setShowGallery(false)}
+                    className={`p-2 rounded-lg ${isDarkMode ? 'hover:bg-neutral-700' : 'hover:bg-neutral-100'}`}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 ${isDarkMode ? 'text-neutral-400' : 'text-neutral-500'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              {/* Gallery Content */}
+              <div className="p-4 overflow-y-auto max-h-[calc(90vh-80px)]">
+                {generatedImages.length === 0 ? (
+                  <div className={`text-center py-12 ${isDarkMode ? 'text-neutral-500' : 'text-neutral-400'}`}>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mx-auto mb-4 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <p>No images saved yet</p>
+                    <p className="text-sm mt-1">Click "Gallery" button on generated images to save them here</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {generatedImages.map((img, index) => (
+                      <div key={index} className="relative group">
+                        <img
+                          src={img.url}
+                          alt={img.prompt}
+                          className={`w-full aspect-square object-cover rounded-xl cursor-pointer ${isDarkMode ? 'border border-neutral-700' : 'border border-neutral-200'}`}
+                          onClick={() => { setLightboxImage(img.url); setShowGallery(false) }}
+                        />
+                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex items-center justify-center gap-2">
+                          <button
+                            onClick={() => downloadImage(img.url)}
+                            className="p-2 bg-white/20 rounded-lg hover:bg-white/30"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
+                          </button>
+                          <button
+                            onClick={() => setGeneratedImages(prev => prev.filter((_, i) => i !== index))}
+                            className="p-2 bg-red-500/80 rounded-lg hover:bg-red-600"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Backdrop */}
       <AnimatePresence>
         {isOpen && isMaximized && (
@@ -463,6 +675,20 @@ export default function ChatWidget({ isDarkMode }: ChatWidgetProps) {
               </div>
 
               <div className="flex items-center gap-1">
+
+                {/* Image Gallery */}
+                <button
+                  onClick={() => setShowGallery(true)}
+                  className={`p-2.5 rounded-xl transition-colors relative ${isDarkMode ? 'hover:bg-neutral-800' : 'hover:bg-neutral-100'}`}
+                  title="Image Gallery"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 ${isDarkMode ? 'text-neutral-400' : 'text-neutral-500'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  {generatedImages.length > 0 && (
+                    <span className="absolute -top-1 -right-1 w-4 h-4 bg-purple-500 text-white text-[10px] rounded-full flex items-center justify-center">{generatedImages.length}</span>
+                  )}
+                </button>
 
                 {/* Saved Messages */}
                 <button
@@ -598,6 +824,75 @@ export default function ChatWidget({ isDarkMode }: ChatWidgetProps) {
                                 <ReactMarkdown>{msg.text}</ReactMarkdown>
                               </div>
                             ) : msg.text}
+
+                            {/* Generated Image with Actions */}
+                            {msg.image && (
+                              <div className="mt-3">
+                                <div className="relative group/img">
+                                  <img
+                                    src={msg.image}
+                                    alt="Generated image"
+                                    className={`rounded-xl max-w-full cursor-pointer hover:opacity-95 transition-all border-2 ${isDarkMode ? 'border-neutral-600' : 'border-neutral-300'}`}
+                                    style={{ maxHeight: '280px', objectFit: 'contain' }}
+                                    onClick={() => setLightboxImage(msg.image || null)}
+                                    onError={(e) => {
+                                      const target = e.target as HTMLImageElement
+                                      if (!target.src.includes('retry=')) {
+                                        target.src = msg.image + (msg.image?.includes('?') ? '&' : '?') + 'retry=1'
+                                      }
+                                    }}
+                                    loading="lazy"
+                                  />
+
+                                  {/* Image Action Buttons */}
+                                  <div className={`flex gap-1 mt-2 flex-wrap`}>
+                                    {/* Zoom/Lightbox */}
+                                    <button
+                                      onClick={() => setLightboxImage(msg.image || null)}
+                                      className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs transition-colors ${isDarkMode ? 'bg-neutral-700 hover:bg-neutral-600 text-neutral-300' : 'bg-neutral-100 hover:bg-neutral-200 text-neutral-600'}`}
+                                    >
+                                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                                      </svg>
+                                      Zoom
+                                    </button>
+
+                                    {/* Download */}
+                                    <button
+                                      onClick={() => downloadImage(msg.image!)}
+                                      className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs transition-colors ${isDarkMode ? 'bg-neutral-700 hover:bg-neutral-600 text-neutral-300' : 'bg-neutral-100 hover:bg-neutral-200 text-neutral-600'}`}
+                                    >
+                                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                      </svg>
+                                      Download
+                                    </button>
+
+                                    {/* Share/Copy URL */}
+                                    <button
+                                      onClick={() => shareImage(msg.image!)}
+                                      className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs transition-colors ${isDarkMode ? 'bg-neutral-700 hover:bg-neutral-600 text-neutral-300' : 'bg-neutral-100 hover:bg-neutral-200 text-neutral-600'}`}
+                                    >
+                                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                                      </svg>
+                                      {copiedUrl ? 'Copied!' : 'Share'}
+                                    </button>
+
+                                    {/* Save to Gallery */}
+                                    <button
+                                      onClick={() => addToGallery(msg.image!, msg.text)}
+                                      className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs transition-colors ${isDarkMode ? 'bg-blue-600 hover:bg-blue-500 text-white' : 'bg-blue-500 hover:bg-blue-600 text-white'}`}
+                                    >
+                                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                      </svg>
+                                      Gallery
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
                           </div>
 
                           {/* Actions for bot messages - always visible on mobile, hover effect on desktop */}

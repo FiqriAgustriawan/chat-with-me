@@ -1,86 +1,54 @@
-import { GoogleGenAI } from '@google/genai'
+import { GoogleGenAI, Type } from '@google/genai'
 import { NextRequest, NextResponse } from 'next/server'
+import { generateImage } from '@/lib/image-generator'
 
-// System prompt - Personality bot Fiqri (Multilingual)
+// System prompt - Personality bot Fiqri with Image Generation
 const systemInstruction = `
 Kamu adalah asisten virtual bernama Fiqri Bot.
-Kamu adalah AI assistant yang ramah, cerdas, dan helpful untuk website portfolio Muhammad Fiqri Agustriawan (biasa dipanggil Fiqri).
+Kamu adalah AI assistant yang ramah dan helpful untuk portfolio Muhammad Fiqri Agustriawan.
 
-=== KEMAMPUAN BAHASA (MULTILINGUAL) ===
-Kamu WAJIB menjawab dalam bahasa yang sama dengan bahasa yang digunakan user:
-- Jika user berbicara dalam Bahasa Indonesia → jawab dalam Bahasa Indonesia
-- Jika user berbicara dalam English → jawab dalam English
-- Jika user berbicara dalam 日本語 (Japanese) → jawab dalam 日本語
-- Jika user berbicara dalam Español (Spanish) → jawab dalam Español
-- Jika user berbicara dalam 中文 (Mandarin) → jawab dalam 中文
+=== PENTING: KEMAMPUAN MEMBUAT GAMBAR ===
+Kamu HARUS menggunakan tool "generate_image" ketika user meminta:
+- "buat gambar..." / "buatkan gambar..."
+- "generate gambar..." / "generate image..."
+- "gambarkan..." / "draw..."
+- "buat foto..." / "create image..."
 
-Contoh:
-- "Hello, who is Fiqri?" → Answer in English
-- "こんにちは、フィクリは誰ですか？" → 日本語で答える
-- "¿Quién es Fiqri?" → Responder en español
-- "你好，Fiqri是谁？" → 用中文回答
+Ketika diminta membuat gambar, SELALU gunakan tool generate_image dengan prompt dalam BAHASA INGGRIS.
+Contoh: user bilang "buat gambar kucing" → panggil generate_image dengan prompt "a cute cat"
 
 === BIODATA FIQRI ===
-Nama Lengkap: Muhammad Fiqri Agustriawan
-Panggilan: Fiqri
-Pendidikan: SMK Telkom Makassar, Kelas 12 Semester 2
-Status: Siswa SMK yang sedang magang di Ashari Tech
+Nama: Muhammad Fiqri Agustriawan
+Pendidikan: SMK Telkom Makassar
+Status: Magang di Ashari Tech
+Lokasi: Bandung, Indonesia
+Role: Fullstack Software Engineer (Backend Focus)
 Email: muhfiqri033@gmail.com
-Lokasi: Hegarmanah, Cidadap, Kota Bandung, Jawa Barat, Indonesia
-
-=== PROFIL PROFESIONAL ===
-Title: Fullstack Software Engineer
-Primary Focus: Backend Engineering
-Deskripsi: Seorang Insinyur Perangkat Lunak Fullstack yang bersemangat, berbasis di Bandung, Indonesia. Meskipun mahir di seluruh tumpukan pengembangan, keahlian dan minat sejati saya terletak pada rekayasa backend — merancang API yang tangguh, mengoptimalkan kinerja basis data, dan membangun solusi sisi server yang skalabel.
-
-=== KEAHLIAN TEKNIS ===
-Backend (Primary Focus):
-- Laravel, Golang, Node.js
-- API Architecture & RESTful Design
-- Database Optimization (MySQL, PostgreSQL)
-- Server Management & Deployment
-
-Frontend (Fullstack Capability):
-- React, Next.js, Vite
-- TailwindCSS, Modern CSS
-- Responsive Web Design
-
-Lainnya:
-- Supabase, Firebase
-- Git & Version Control
-- AI/Chatbot Integration
-- Tersertifikasi Web Developer oleh BNSP
-
-=== LINK & SOSIAL MEDIA ===
-- Portfolio: https://fiqriagustriawan.github.io/
-- GitHub: https://github.com/FiqriAgustriawan
-- LinkedIn: https://www.linkedin.com/in/fiqri-agustriawan/
-- Email: muhfiqri033@gmail.com
-
-=== ATURAN FORMAT OUTPUT ===
-- Gunakan format markdown untuk memperjelas jawaban
-- Gunakan **bold** untuk menekankan kata penting
-- Gunakan - atau * untuk membuat daftar jika diperlukan
-- Gunakan \`backtick\` untuk istilah teknis atau nama file
-- Jangan berlebihan, gunakan formatting secukupnya
-
-=== CARA MENJAWAB ===
-- SELALU jawab dalam bahasa yang sama dengan user
-- Jawab dengan singkat dan jelas (maksimal 2-3 paragraf)
-- Bersikap ramah, profesional, dan informatif
-- Kalau ditanya tentang hal teknis, jelaskan dengan sederhana
-- Kalau ditanya hal yang tidak kamu tahu, bilang dengan jujur
-- Jika ditanya tentang portfolio, GitHub, LinkedIn, atau email Fiqri, berikan informasinya
-
-=== LARANGAN ===
-- Menjawab pertanyaan yang tidak pantas
-- Berpura-pura menjadi orang lain
-- Memberikan informasi pribadi yang sensitif selain yang sudah disebutkan
+GitHub: https://github.com/FiqriAgustriawan
 `
+
+// Tool untuk generate gambar
+const imageGenerationTool = {
+  functionDeclarations: [
+    {
+      name: 'generate_image',
+      description: 'Generate gambar berdasarkan deskripsi dari user. Gunakan ketika user meminta untuk membuat, generate, buat, atau gambarkan sesuatu.',
+      parameters: {
+        type: Type.OBJECT,
+        properties: {
+          prompt: {
+            type: Type.STRING,
+            description: 'Deskripsi gambar dalam bahasa Inggris',
+          },
+        },
+        required: ['prompt'],
+      },
+    },
+  ],
+}
 
 export async function POST(request: NextRequest) {
   try {
-    // Validasi API Key
     const apiKey = process.env.GEMINI_API_KEY
     if (!apiKey) {
       return NextResponse.json(
@@ -89,14 +57,10 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Inisialisasi Gemini AI
     const ai = new GoogleGenAI({ apiKey })
-
-    // Ambil message dari request body
     const body = await request.json()
-    const { message } = body
+    const { message, history } = body
 
-    // Validasi input
     if (!message || typeof message !== 'string') {
       return NextResponse.json(
         { success: false, error: 'Message is required' },
@@ -104,56 +68,92 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Buat chat dengan systemInstruction (pattern dari Lutim AI)
-    // Menggunakan gemini-2.5-flash seperti di project Lutim
-    const chat = ai.chats.create({
+    console.log('=== Chat Request ===')
+    console.log('Message:', message)
+
+    // Build conversation history
+    const conversationHistory = history?.map((msg: { role: string; content: string }) => ({
+      role: msg.role === 'user' ? 'user' : 'model',
+      parts: [{ text: msg.content }],
+    })) || []
+
+    // Use original chat pattern with gemini-2.5-flash
+    const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
+      contents: [
+        { role: 'user', parts: [{ text: systemInstruction }] },
+        { role: 'model', parts: [{ text: 'Baik, saya mengerti!' }] },
+        ...conversationHistory,
+        { role: 'user', parts: [{ text: message }] },
+      ],
       config: {
-        systemInstruction: systemInstruction,
-      }
+        tools: [imageGenerationTool],
+      },
     })
 
-    // Kirim pesan dan dapatkan response
-    const response = await chat.sendMessage({ message: message })
-    const aiResponse = response.text
+    console.log('Response received')
+    console.log('Function calls:', response.functionCalls ? response.functionCalls.length : 'none')
+    console.log('Text response preview:', response.text?.substring(0, 100))
 
-    // Return response
+    // Cek function call untuk image generation
+    const functionCalls = response.functionCalls
+
+    if (functionCalls && functionCalls.length > 0) {
+      const functionCall = functionCalls[0]
+      console.log('Function call detected:', functionCall.name)
+
+      if (functionCall.name === 'generate_image') {
+        const imagePrompt = functionCall.args?.prompt as string
+        console.log('Image prompt:', imagePrompt)
+
+        try {
+          const imageUrl = await generateImage(imagePrompt)
+
+          if (imageUrl) {
+            return NextResponse.json({
+              success: true,
+              message: `Ini dia gambar yang kamu minta! 🎨`,
+              image: imageUrl,
+            })
+          }
+        } catch (imageError) {
+          console.error('Image generation error:', imageError)
+        }
+
+        return NextResponse.json({
+          success: true,
+          message: 'Maaf, gagal membuat gambar. Coba lagi ya!',
+        })
+      }
+    }
+
+    // Response text biasa
     return NextResponse.json({
       success: true,
-      message: aiResponse,
+      message: response.text,
     })
 
   } catch (error: unknown) {
-    console.error('Gemini API Error:', error)
+    console.error('=== API Error ===', error)
 
     const err = error as { status?: number; message?: string }
 
-    // Handle rate limit error (429)
     if (err.status === 429) {
       return NextResponse.json(
-        { success: false, error: 'Terlalu banyak permintaan. Coba lagi dalam beberapa detik! ⏳' },
+        { success: false, error: 'Terlalu banyak permintaan. Tunggu sebentar ya!' },
         { status: 429 }
       )
     }
 
-    // Handle API key errors
-    if (err.message?.includes('API key') || err.status === 401 || err.status === 403) {
+    if (err.status === 503) {
       return NextResponse.json(
-        { success: false, error: 'API key tidak valid.' },
-        { status: 401 }
-      )
-    }
-
-    // Handle model not found
-    if (err.status === 404) {
-      return NextResponse.json(
-        { success: false, error: 'Model tidak ditemukan. Coba model lain.' },
-        { status: 404 }
+        { success: false, error: 'Model sedang sibuk. Coba lagi dalam beberapa detik.' },
+        { status: 503 }
       )
     }
 
     return NextResponse.json(
-      { success: false, error: 'Gagal mendapatkan response dari AI. Coba lagi nanti.' },
+      { success: false, error: 'Gagal mendapatkan response. Coba lagi nanti.' },
       { status: 500 }
     )
   }
