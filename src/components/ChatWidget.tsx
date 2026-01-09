@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import Image from 'next/image'
 import ReactMarkdown from 'react-markdown'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -65,9 +65,114 @@ const languages = [
   { code: 'zh-CN', name: '中文', flag: '🇨🇳' },
 ]
 
+// ==================== Image Generation Config ====================
+const stylePresets = [
+  { id: 'realistic', name: 'Realistic Photo', icon: 'camera', prompt: 'ultra realistic photo, 8k, professional photography' },
+  { id: 'cyberpunk', name: 'Cyberpunk', icon: 'lightning', prompt: 'cyberpunk style, neon lights, futuristic, dark atmosphere' },
+  { id: 'ghibli', name: 'Ghibli Anime', icon: 'sparkles', prompt: 'studio ghibli style, anime art, soft colors, whimsical' },
+  { id: '3d', name: '3D Render', icon: 'cube', prompt: 'pixar style, 3d render, octane render, high quality' },
+  { id: 'oil', name: 'Oil Painting', icon: 'brush', prompt: 'oil painting style, classical art, brush strokes, masterpiece' },
+  { id: 'retro', name: 'Retro 80s', icon: 'film', prompt: 'retro 80s style, synthwave, vaporwave, vintage aesthetic' },
+]
+
+const aspectRatios = [
+  { id: 'square', name: 'Square', ratio: '1:1', width: 1024, height: 1024, icon: 'square', desc: 'Instagram Post' },
+  { id: 'portrait', name: 'Portrait', ratio: '9:16', width: 768, height: 1344, icon: 'phone', desc: 'Story/TikTok' },
+  { id: 'landscape', name: 'Landscape', ratio: '16:9', width: 1344, height: 768, icon: 'monitor', desc: 'Wallpaper PC' },
+  { id: 'wide', name: 'Ultrawide', ratio: '21:9', width: 1680, height: 720, icon: 'film', desc: 'Cinematic' },
+]
+
+const magicPrompts = [
+  { text: 'Kucing lucu', icon: 'sparkles', enhanced: 'buatkan gambar kucing lucu dengan mata besar, berbulu halus, duduk di jendela dengan cahaya matahari terbenam' },
+  { text: 'Galaxy wallpaper', icon: 'star', enhanced: 'generate stunning galaxy wallpaper with purple nebula, millions of stars, cosmic dust, vibrant colors' },
+  { text: 'Kastil di bukit', icon: 'home', enhanced: 'buatkan gambar kastil megah di atas bukit hijau dengan langit dramatis, awan berarak, suasana fantasi epik' },
+  { text: 'Robot futuristik', icon: 'chip', enhanced: 'buatkan gambar robot futuristik yang ramah, desain sleek metalik, mata LED biru, latar belakang kota masa depan' },
+  { text: 'Taman Jepang', icon: 'flower', enhanced: 'buatkan gambar taman jepang tradisional dengan bunga sakura mekar, kolam koi, jembatan kayu, suasana damai' },
+  { text: 'Naga mistis', icon: 'fire', enhanced: 'buatkan gambar naga mistis terbang di atas pegunungan, dengan sisik berkilau, napas api, langit senja' },
+]
+
 // ==================== Utilities ====================
 const formatTime = (date: Date): string => {
   return date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+}
+
+// Icon renderer for Image Generation Panel
+const renderIcon = (iconName: string, className: string = 'w-5 h-5') => {
+  const icons: Record<string, React.ReactNode> = {
+    camera: (
+      <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+      </svg>
+    ),
+    lightning: (
+      <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
+      </svg>
+    ),
+    sparkles: (
+      <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+      </svg>
+    ),
+    cube: (
+      <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+      </svg>
+    ),
+    brush: (
+      <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+      </svg>
+    ),
+    film: (
+      <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
+      </svg>
+    ),
+    square: (
+      <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V5z" />
+      </svg>
+    ),
+    phone: (
+      <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+      </svg>
+    ),
+    monitor: (
+      <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+      </svg>
+    ),
+    star: (
+      <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+      </svg>
+    ),
+    home: (
+      <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+      </svg>
+    ),
+    chip: (
+      <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+      </svg>
+    ),
+    flower: (
+      <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+      </svg>
+    ),
+    fire: (
+      <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.879 16.121A3 3 0 1012.015 11L11 14H9c0 .768.293 1.536.879 2.121z" />
+      </svg>
+    ),
+  }
+  return icons[iconName] || <span className={className}></span>
 }
 
 const STORAGE_KEY = 'fiqri_chat_messages'
@@ -101,6 +206,26 @@ export default function ChatWidget({ isDarkMode }: ChatWidgetProps) {
   const [generatedImages, setGeneratedImages] = useState<{ url: string, prompt: string, timestamp: Date }[]>([])
   const [showGallery, setShowGallery] = useState(false)
   const [copiedUrl, setCopiedUrl] = useState(false)
+
+  // Image Editor States
+  const [showImageEditor, setShowImageEditor] = useState(false)
+  const [editingImage, setEditingImage] = useState<string | null>(null)
+  const [imageFilters, setImageFilters] = useState({
+    brightness: 100,
+    contrast: 100,
+    saturation: 100,
+    blur: 0,
+    grayscale: 0,
+    sepia: 0,
+    hueRotate: 0,
+  })
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+
+  // Image Generation Panel States
+  const [showImagePanel, setShowImagePanel] = useState(false)
+  const [selectedStyle, setSelectedStyle] = useState(stylePresets[0])
+  const [selectedRatio, setSelectedRatio] = useState(aspectRatios[0])
+  const [imagePrompt, setImagePrompt] = useState('')
 
   // Voice States
   const [isListening, setIsListening] = useState(false)
@@ -450,14 +575,91 @@ export default function ChatWidget({ isDarkMode }: ChatWidgetProps) {
   }
 
   const addToGallery = (url: string, prompt: string) => {
-    // Check if already in gallery
     const exists = generatedImages.some(img => img.url === url)
     if (!exists) {
       setGeneratedImages(prev => [...prev, { url, prompt, timestamp: new Date() }])
-      // Show brief notification
       setCopiedUrl(true)
       setTimeout(() => setCopiedUrl(false), 1500)
     }
+  }
+
+  // ==================== Image Editor Functions ====================
+  const openImageEditor = (imageUrl: string) => {
+    setEditingImage(imageUrl)
+    setImageFilters({
+      brightness: 100,
+      contrast: 100,
+      saturation: 100,
+      blur: 0,
+      grayscale: 0,
+      sepia: 0,
+      hueRotate: 0,
+    })
+    setShowImageEditor(true)
+    setLightboxImage(null)
+  }
+
+  const getFilterString = () => {
+    return `brightness(${imageFilters.brightness}%) contrast(${imageFilters.contrast}%) saturate(${imageFilters.saturation}%) blur(${imageFilters.blur}px) grayscale(${imageFilters.grayscale}%) sepia(${imageFilters.sepia}%) hue-rotate(${imageFilters.hueRotate}deg)`
+  }
+
+  const resetFilters = () => {
+    setImageFilters({
+      brightness: 100,
+      contrast: 100,
+      saturation: 100,
+      blur: 0,
+      grayscale: 0,
+      sepia: 0,
+      hueRotate: 0,
+    })
+  }
+
+  const downloadEditedImage = async () => {
+    if (!editingImage || !canvasRef.current) return
+
+    const canvas = canvasRef.current
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+
+    const img = new window.Image()
+    img.crossOrigin = 'anonymous'
+    img.onload = () => {
+      canvas.width = img.width
+      canvas.height = img.height
+      ctx.filter = getFilterString()
+      ctx.drawImage(img, 0, 0)
+
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const url = URL.createObjectURL(blob)
+          const a = document.createElement('a')
+          a.href = url
+          a.download = `edited-image-${Date.now()}.png`
+          document.body.appendChild(a)
+          a.click()
+          document.body.removeChild(a)
+          URL.revokeObjectURL(url)
+        }
+      }, 'image/png')
+    }
+    img.src = editingImage
+  }
+
+  // ==================== Generate Styled Image ====================
+  const generateStyledImage = () => {
+    if (!imagePrompt.trim()) return
+
+    // Combine prompt with style and send as chat message
+    const enhancedPrompt = `buatkan gambar: ${imagePrompt}, ${selectedStyle.prompt}, aspect ratio ${selectedRatio.ratio}, width:${selectedRatio.width}, height:${selectedRatio.height}`
+
+    sendMessage(enhancedPrompt, false)
+    setImagePrompt('')
+    setShowImagePanel(false)
+  }
+
+  const applyMagicPrompt = (enhanced: string) => {
+    setImagePrompt(enhanced)
   }
 
   // ==================== Render ====================
@@ -517,6 +719,15 @@ export default function ChatWidget({ isDarkMode }: ChatWidgetProps) {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                   </svg>
                 </button>
+                <button
+                  onClick={() => openImageEditor(lightboxImage)}
+                  className="p-2 text-white hover:text-yellow-400 transition-colors"
+                  title="Edit Image"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                </button>
               </div>
 
               {/* Close Button */}
@@ -528,6 +739,379 @@ export default function ChatWidget({ isDarkMode }: ChatWidgetProps) {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Image Editor Modal */}
+      <AnimatePresence>
+        {showImageEditor && editingImage && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-xl flex flex-col p-4"
+          >
+            {/* Hidden canvas for export */}
+            <canvas ref={canvasRef} className="hidden" />
+
+            {/* Header */}
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-white text-xl font-semibold">🖌️ Image Editor</h2>
+              <div className="flex gap-2">
+                <button
+                  onClick={resetFilters}
+                  className="px-4 py-2 bg-neutral-700 text-white rounded-lg hover:bg-neutral-600 text-sm"
+                >
+                  Reset
+                </button>
+                <button
+                  onClick={downloadEditedImage}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 text-sm flex items-center gap-2"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  Download
+                </button>
+                <button
+                  onClick={() => setShowImageEditor(false)}
+                  className="p-2 bg-neutral-700 text-white rounded-lg hover:bg-neutral-600"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            {/* Preview and Controls */}
+            <div className="flex-1 flex gap-4 overflow-hidden">
+              {/* Image Preview */}
+              <div className="flex-1 flex items-center justify-center bg-neutral-900 rounded-xl overflow-hidden">
+                <img
+                  src={editingImage}
+                  alt="Editing"
+                  className="max-w-full max-h-full object-contain"
+                  style={{ filter: getFilterString() }}
+                />
+              </div>
+
+              {/* Filter Controls */}
+              <div className="w-72 bg-neutral-800 rounded-xl p-4 space-y-4 overflow-y-auto" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                <h3 className="text-white font-semibold mb-4">Adjustments</h3>
+
+                {/* Brightness */}
+                <div>
+                  <div className="flex justify-between text-sm text-neutral-300 mb-1">
+                    <span>☀️ Brightness</span>
+                    <span>{imageFilters.brightness}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="200"
+                    value={imageFilters.brightness}
+                    onChange={(e) => setImageFilters(prev => ({ ...prev, brightness: +e.target.value }))}
+                    className="w-full accent-blue-500"
+                  />
+                </div>
+
+                {/* Contrast */}
+                <div>
+                  <div className="flex justify-between text-sm text-neutral-300 mb-1">
+                    <span>◐ Contrast</span>
+                    <span>{imageFilters.contrast}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="200"
+                    value={imageFilters.contrast}
+                    onChange={(e) => setImageFilters(prev => ({ ...prev, contrast: +e.target.value }))}
+                    className="w-full accent-blue-500"
+                  />
+                </div>
+
+                {/* Saturation */}
+                <div>
+                  <div className="flex justify-between text-sm text-neutral-300 mb-1">
+                    <span>🎨 Saturation</span>
+                    <span>{imageFilters.saturation}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="200"
+                    value={imageFilters.saturation}
+                    onChange={(e) => setImageFilters(prev => ({ ...prev, saturation: +e.target.value }))}
+                    className="w-full accent-blue-500"
+                  />
+                </div>
+
+                {/* Blur */}
+                <div>
+                  <div className="flex justify-between text-sm text-neutral-300 mb-1">
+                    <span>💨 Blur</span>
+                    <span>{imageFilters.blur}px</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="20"
+                    value={imageFilters.blur}
+                    onChange={(e) => setImageFilters(prev => ({ ...prev, blur: +e.target.value }))}
+                    className="w-full accent-blue-500"
+                  />
+                </div>
+
+                {/* Grayscale */}
+                <div>
+                  <div className="flex justify-between text-sm text-neutral-300 mb-1">
+                    <span>⬛ Grayscale</span>
+                    <span>{imageFilters.grayscale}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={imageFilters.grayscale}
+                    onChange={(e) => setImageFilters(prev => ({ ...prev, grayscale: +e.target.value }))}
+                    className="w-full accent-blue-500"
+                  />
+                </div>
+
+                {/* Sepia */}
+                <div>
+                  <div className="flex justify-between text-sm text-neutral-300 mb-1">
+                    <span>🟤 Sepia</span>
+                    <span>{imageFilters.sepia}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={imageFilters.sepia}
+                    onChange={(e) => setImageFilters(prev => ({ ...prev, sepia: +e.target.value }))}
+                    className="w-full accent-blue-500"
+                  />
+                </div>
+
+                {/* Hue Rotate */}
+                <div>
+                  <div className="flex justify-between text-sm text-neutral-300 mb-1">
+                    <span>🌈 Hue Rotate</span>
+                    <span>{imageFilters.hueRotate}°</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="360"
+                    value={imageFilters.hueRotate}
+                    onChange={(e) => setImageFilters(prev => ({ ...prev, hueRotate: +e.target.value }))}
+                    className="w-full accent-blue-500"
+                  />
+                </div>
+
+                {/* Presets */}
+                <div className="pt-4 border-t border-neutral-700">
+                  <h4 className="text-white text-sm font-semibold mb-3">Quick Presets</h4>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => setImageFilters({ ...imageFilters, grayscale: 100, saturation: 0 })}
+                      className="px-3 py-2 bg-neutral-700 text-white text-xs rounded-lg hover:bg-neutral-600"
+                    >
+                      B&W
+                    </button>
+                    <button
+                      onClick={() => setImageFilters({ ...imageFilters, sepia: 80, saturation: 120 })}
+                      className="px-3 py-2 bg-neutral-700 text-white text-xs rounded-lg hover:bg-neutral-600"
+                    >
+                      Vintage
+                    </button>
+                    <button
+                      onClick={() => setImageFilters({ ...imageFilters, contrast: 150, saturation: 130 })}
+                      className="px-3 py-2 bg-neutral-700 text-white text-xs rounded-lg hover:bg-neutral-600"
+                    >
+                      Vivid
+                    </button>
+                    <button
+                      onClick={() => setImageFilters({ ...imageFilters, brightness: 110, contrast: 90, saturation: 80 })}
+                      className="px-3 py-2 bg-neutral-700 text-white text-xs rounded-lg hover:bg-neutral-600"
+                    >
+                      Soft
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Image Generation Panel Modal */}
+      <AnimatePresence>
+        {showImagePanel && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-xl flex items-center justify-center p-4"
+            onClick={() => setShowImagePanel(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              className={`relative w-full max-w-3xl max-h-[90vh] rounded-2xl overflow-hidden ${isDarkMode ? 'bg-neutral-900' : 'bg-white'}`}
+              onClick={(e) => e.stopPropagation()}
+              style={{ scrollbarWidth: 'none' }}
+            >
+              {/* Header */}
+              <div className={`p-4 border-b ${isDarkMode ? 'border-neutral-700' : 'border-neutral-200'} flex items-center justify-between`}>
+                <h3 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-neutral-800'}`}>
+                  🎨 AI Image Generator
+                </h3>
+                <button
+                  onClick={() => setShowImagePanel(false)}
+                  className={`p-2 rounded-lg ${isDarkMode ? 'hover:bg-neutral-700' : 'hover:bg-neutral-100'}`}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 ${isDarkMode ? 'text-neutral-400' : 'text-neutral-500'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Content */}
+              <div className="p-4 overflow-y-auto max-h-[calc(90vh-140px)]" style={{ scrollbarWidth: 'none' }}>
+                {/* Magic Prompts */}
+                <div className="mb-6">
+                  <h4 className={`text-sm font-semibold mb-3 flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-neutral-800'}`}>
+                    {renderIcon('sparkles', 'w-4 h-4')}
+                    Magic Prompts
+                    <span className={`text-xs font-normal ${isDarkMode ? 'text-neutral-500' : 'text-neutral-400'}`}>(Klik untuk menggunakan)</span>
+                  </h4>
+                  <div className="flex flex-wrap gap-2">
+                    {magicPrompts.map((mp, i) => (
+                      <button
+                        key={i}
+                        onClick={() => applyMagicPrompt(mp.enhanced)}
+                        className={`px-3 py-2 text-sm rounded-lg transition-all flex items-center gap-2 ${isDarkMode
+                          ? 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700 hover:text-white'
+                          : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200 hover:text-neutral-800'
+                          }`}
+                      >
+                        {renderIcon(mp.icon, 'w-4 h-4')}
+                        {mp.text}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Style Presets */}
+                <div className="mb-6">
+                  <h4 className={`text-sm font-semibold mb-3 flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-neutral-800'}`}>
+                    {renderIcon('brush', 'w-4 h-4')}
+                    Style Presets
+                  </h4>
+                  <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
+                    {stylePresets.map((style) => (
+                      <button
+                        key={style.id}
+                        onClick={() => setSelectedStyle(style)}
+                        className={`p-3 rounded-xl flex flex-col items-center gap-2 transition-all ${selectedStyle.id === style.id
+                          ? 'bg-blue-600 text-white ring-2 ring-blue-400'
+                          : isDarkMode
+                            ? 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700'
+                            : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                          }`}
+                      >
+                        <span className="w-8 h-8">{renderIcon(style.icon, 'w-8 h-8')}</span>
+                        <span className="text-xs text-center font-medium">{style.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Aspect Ratio */}
+                <div className="mb-6">
+                  <h4 className={`text-sm font-semibold mb-3 flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-neutral-800'}`}>
+                    {renderIcon('square', 'w-4 h-4')}
+                    Aspect Ratio
+                  </h4>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                    {aspectRatios.map((ratio) => (
+                      <button
+                        key={ratio.id}
+                        onClick={() => setSelectedRatio(ratio)}
+                        className={`p-3 rounded-xl flex flex-col items-center gap-1 transition-all ${selectedRatio.id === ratio.id
+                          ? 'bg-green-600 text-white ring-2 ring-green-400'
+                          : isDarkMode
+                            ? 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700'
+                            : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                          }`}
+                      >
+                        <span className="w-6 h-6">{renderIcon(ratio.icon, 'w-6 h-6')}</span>
+                        <span className="text-sm font-semibold">{ratio.name}</span>
+                        <span className={`text-xs ${selectedRatio.id === ratio.id ? 'text-green-200' : isDarkMode ? 'text-neutral-500' : 'text-neutral-400'}`}>
+                          {ratio.ratio} • {ratio.desc}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Prompt Input */}
+                <div className="mb-4">
+                  <h4 className={`text-sm font-semibold mb-3 flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-neutral-800'}`}>
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    </svg>
+                    Deskripsi Gambar
+                  </h4>
+                  <textarea
+                    value={imagePrompt}
+                    onChange={(e) => setImagePrompt(e.target.value)}
+                    placeholder="Deskripsikan gambar yang ingin dibuat... (contoh: seekor naga terbang di atas pegunungan saat matahari terbenam)"
+                    className={`w-full p-4 rounded-xl resize-none h-24 ${isDarkMode
+                      ? 'bg-neutral-800 text-white placeholder-neutral-500 border-neutral-700'
+                      : 'bg-neutral-100 text-neutral-800 placeholder-neutral-400 border-neutral-200'
+                      } border focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none`}
+                  />
+                </div>
+
+                {/* Selected Summary */}
+                <div className={`p-3 rounded-xl mb-4 ${isDarkMode ? 'bg-neutral-800/50' : 'bg-neutral-100'}`}>
+                  <p className={`text-xs flex items-center gap-1 ${isDarkMode ? 'text-neutral-400' : 'text-neutral-500'}`}>
+                    <span className="font-semibold">Style:</span>
+                    <span className="inline-flex w-4 h-4">{renderIcon(selectedStyle.icon, 'w-4 h-4')}</span>
+                    {selectedStyle.name} •
+                    <span className="font-semibold ml-2">Size:</span>
+                    <span className="inline-flex w-4 h-4">{renderIcon(selectedRatio.icon, 'w-4 h-4')}</span>
+                    {selectedRatio.width}x{selectedRatio.height}
+                  </p>
+                </div>
+              </div>
+
+              {/* Generate Button */}
+              <div className={`p-4 border-t ${isDarkMode ? 'border-neutral-700' : 'border-neutral-200'}`}>
+                <button
+                  onClick={generateStyledImage}
+                  disabled={!imagePrompt.trim()}
+                  className={`w-full py-3 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all ${imagePrompt.trim()
+                    ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-500 hover:to-pink-500 shadow-lg'
+                    : isDarkMode
+                      ? 'bg-neutral-700 text-neutral-500 cursor-not-allowed'
+                      : 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
+                    }`}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                  Generate Image
+                </button>
+              </div>
             </motion.div>
           </motion.div>
         )}
@@ -676,6 +1260,17 @@ export default function ChatWidget({ isDarkMode }: ChatWidgetProps) {
 
               <div className="flex items-center gap-1">
 
+                {/* AI Image Generator */}
+                <button
+                  onClick={() => setShowImagePanel(true)}
+                  className={`p-2.5 rounded-xl transition-colors ${isDarkMode ? 'hover:bg-neutral-800' : 'hover:bg-neutral-100'}`}
+                  title="AI Image Generator"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 ${isDarkMode ? 'text-purple-400' : 'text-purple-500'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                  </svg>
+                </button>
+
                 {/* Image Gallery */}
                 <button
                   onClick={() => setShowGallery(true)}
@@ -750,6 +1345,7 @@ export default function ChatWidget({ isDarkMode }: ChatWidgetProps) {
               ref={messagesContainerRef}
               onScroll={handleScroll}
               className={`flex-1 overflow-y-auto p-4 space-y-4 ${isDarkMode ? 'bg-neutral-950' : 'bg-gradient-to-b from-neutral-50 to-white'}`}
+              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
             >
               {/* Saved Messages View */}
               {showSaved ? (

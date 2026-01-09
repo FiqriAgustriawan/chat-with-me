@@ -1,0 +1,340 @@
+/* Hogwarts Legacy Portfolio - Custom Styles */
+
+/* ======================== Fonts ======================== */
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap');
+
+/* ======================== CSS Variables ======================== */
+:root {
+  /* Slytherin Colors */
+  --hogwarts-green-dark: #1A472A;
+  --hogwarts-green: #2A623D;
+  --hogwarts-green-light: #3D8B57;
+  --hogwarts-silver: #AAAAAA;
+  --hogwarts-gold: #C4A747;
+  --hogwarts-gold-light: #D4B85F;
+  --hogwarts-gold-dark: #8B7535;
+  
+  /* Background Colors */
+  --hogwarts-bg-dark: #0D0D0D;
+  --hogwarts-bg-medium: #1A1A1A;
+  --hogwarts-bg-light: #2A2A2A;
+  
+  /* Parchment */
+  --parchment-light: #F4E8D1;
+  --parchment: #E8DCC4;
+  --parchment-dark: #D4C8A8;
+  
+  /* Text */
+  --text-gold: #C4A747;
+  --text-silver: #CCCCCC;
+  --text-white: #F0F0F0;
+}
+
+/* ======================== Base Styles ======================== */
+.hogwarts-page {
+  font-family: 'Cinzel', serif;
+  background: radial-gradient(ellipse at center, var(--hogwarts-bg-medium) 0%, var(--hogwarts-bg-dark) 100%);
+  min-height: 100vh;
+  color: var(--text-white);
+  overflow-x: hidden;
+}
+
+.hogwarts-title {
+  font-family: 'Cinzel', serif;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.hogwarts-text {
+  font-family: 'Crimson Text', serif;
+  line-height: 1.6;
+}
+
+/* ======================== Diamond Menu ======================== */
+.diamond-menu {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: 20px;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 40px;
+}
+
+.diamond-card {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  transform: rotate(45deg);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.diamond-card:hover {
+  transform: rotate(45deg) scale(1.1);
+}
+
+.diamond-card-inner {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, var(--hogwarts-bg-light) 0%, var(--hogwarts-bg-medium) 100%);
+  border: 2px solid var(--hogwarts-gold-dark);
+  box-shadow: 
+    inset 0 0 20px rgba(196, 167, 71, 0.1),
+    0 0 15px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+}
+
+.diamond-card:hover .diamond-card-inner {
+  border-color: var(--hogwarts-gold);
+  box-shadow: 
+    inset 0 0 30px rgba(196, 167, 71, 0.2),
+    0 0 25px rgba(196, 167, 71, 0.3);
+}
+
+.diamond-card-content {
+  position: absolute;
+  inset: 0;
+  transform: rotate(-45deg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 15px;
+}
+
+.diamond-card-icon {
+  width: 40px;
+  height: 40px;
+  margin-bottom: 8px;
+  opacity: 0.9;
+}
+
+.diamond-card-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--hogwarts-gold);
+  text-align: center;
+}
+
+/* Center Profile Badge */
+.center-badge {
+  width: 180px;
+  height: 180px;
+  grid-column: 3;
+  grid-row: 2;
+  justify-self: center;
+  align-self: center;
+}
+
+.center-badge .diamond-card-inner {
+  background: linear-gradient(135deg, var(--hogwarts-green-dark) 0%, var(--hogwarts-green) 100%);
+  border: 3px solid var(--hogwarts-gold);
+}
+
+/* ======================== Parchment Modal ======================== */
+.parchment-modal {
+  background: 
+    linear-gradient(135deg, var(--parchment-light) 0%, var(--parchment) 50%, var(--parchment-dark) 100%);
+  border-radius: 8px;
+  box-shadow: 
+    0 20px 60px rgba(0, 0, 0, 0.5),
+    inset 0 0 100px rgba(139, 117, 53, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.parchment-modal::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%' height='100%' filter='url(%23noise)' opacity='0.05'/%3E%3C/svg%3E");
+  pointer-events: none;
+}
+
+.parchment-header {
+  background: linear-gradient(90deg, transparent, var(--hogwarts-gold-dark), transparent);
+  padding: 20px;
+  text-align: center;
+}
+
+.parchment-title {
+  font-family: 'Cinzel', serif;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--hogwarts-bg-dark);
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+}
+
+.parchment-content {
+  padding: 30px;
+  color: var(--hogwarts-bg-dark);
+}
+
+/* ======================== Skill Cards ======================== */
+.skill-card {
+  background: linear-gradient(135deg, var(--hogwarts-bg-light) 0%, var(--hogwarts-bg-medium) 100%);
+  border: 1px solid var(--hogwarts-gold-dark);
+  border-radius: 4px;
+  padding: 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+.skill-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--hogwarts-gold-dark), var(--hogwarts-gold), var(--hogwarts-gold-dark));
+}
+
+.skill-card-title {
+  font-family: 'Cinzel', serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--hogwarts-gold);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 12px;
+}
+
+.skill-bar {
+  height: 8px;
+  background: var(--hogwarts-bg-dark);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.skill-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--hogwarts-green-dark), var(--hogwarts-green-light));
+  border-radius: 4px;
+  transition: width 1s ease;
+}
+
+/* ======================== Magic Particles ======================== */
+.magic-particle {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: var(--hogwarts-gold);
+  border-radius: 50%;
+  box-shadow: 0 0 10px var(--hogwarts-gold), 0 0 20px var(--hogwarts-gold-light);
+  pointer-events: none;
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+    opacity: 0.6;
+  }
+  50% {
+    transform: translateY(-20px) scale(1.2);
+    opacity: 1;
+  }
+}
+
+/* ======================== Glow Effects ======================== */
+.glow-green {
+  box-shadow: 0 0 20px rgba(42, 98, 61, 0.5);
+}
+
+.glow-gold {
+  box-shadow: 0 0 20px rgba(196, 167, 71, 0.5);
+}
+
+.text-glow-gold {
+  text-shadow: 0 0 10px rgba(196, 167, 71, 0.5);
+}
+
+/* ======================== Ornate Borders ======================== */
+.ornate-border {
+  position: relative;
+  border: 2px solid var(--hogwarts-gold-dark);
+}
+
+.ornate-border::before,
+.ornate-border::after {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--hogwarts-gold);
+}
+
+.ornate-border::before {
+  top: -5px;
+  left: -5px;
+  border-right: none;
+  border-bottom: none;
+}
+
+.ornate-border::after {
+  bottom: -5px;
+  right: -5px;
+  border-left: none;
+  border-top: none;
+}
+
+/* ======================== Navigation ======================== */
+.hogwarts-nav {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 100;
+}
+
+.nav-button {
+  background: linear-gradient(135deg, var(--hogwarts-bg-medium), var(--hogwarts-bg-light));
+  border: 1px solid var(--hogwarts-gold-dark);
+  color: var(--hogwarts-gold);
+  padding: 10px 20px;
+  font-family: 'Cinzel', serif;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.nav-button:hover {
+  border-color: var(--hogwarts-gold);
+  box-shadow: 0 0 15px rgba(196, 167, 71, 0.3);
+}
+
+/* ======================== Responsive ======================== */
+@media (max-width: 768px) {
+  .diamond-menu {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+    padding: 20px;
+  }
+  
+  .diamond-card {
+    width: 90px;
+    height: 90px;
+  }
+  
+  .center-badge {
+    width: 130px;
+    height: 130px;
+    grid-column: 2;
+  }
+  
+  .diamond-card-icon {
+    width: 30px;
+    height: 30px;
+  }
+  
+  .diamond-card-label {
+    font-size: 8px;
+  }
+}
